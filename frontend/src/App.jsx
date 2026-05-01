@@ -10,7 +10,10 @@ import {
   Cpu,
   BellRing,
   Sparkles,
+  Loader2,
 } from "lucide-react";
+
+import { executeOrchestration } from "./services/api";
 
 import {
   LineChart,
@@ -33,6 +36,10 @@ const data = [
 
 export default function App() {
   const [loading, setLoading] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [query, setQuery] = useState("");
+  const [orchestrationData, setOrchestrationData] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -41,6 +48,49 @@ export default function App() {
 
     return () => clearTimeout(timer);
   }, []);
+
+  const handleAnalyze = async () => {
+    if (!query.trim()) {
+      setError("Please enter a query");
+      return;
+    }
+
+    setAnalyzing(true);
+    setError(null);
+
+    try {
+      const result = await executeOrchestration(query);
+      setOrchestrationData(result);
+      console.log("Orchestration result:", result);
+    } catch (err) {
+      setError(err.message);
+      console.error("Orchestration error:", err);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  // Extract data from orchestration responses
+  const getAgentData = (agentName) => {
+    if (!orchestrationData?.responses) return null;
+    return orchestrationData.responses.find(r => r.agent_name === agentName);
+  };
+
+  const dataAgent = getAgentData('DataAgent');
+  const riskAgent = getAgentData('RiskAgent');
+  const strategyAgent = getAgentData('StrategyAgent');
+  const executiveAgent = getAgentData('ExecutiveAgent');
+
+  // Calculate risk score from risk agent
+  const riskScore = riskAgent?.data?.overall_risk_score
+    ? Math.round(riskAgent.data.overall_risk_score * 10)
+    : 82;
+
+  // Get executive insights
+  const executiveInsights = executiveAgent?.data?.strategic_insights || [
+    "Autonomous multi-agent analysis identified geopolitical instability, supplier volatility, and operational bottlenecks as primary risk drivers.",
+    "Immediate supplier diversification and contingency planning are strongly recommended."
+  ];
 
   return (
     <AnimatePresence>
@@ -186,14 +236,49 @@ export default function App() {
                 <input
                   type="text"
                   placeholder="Analyze semiconductor supply chain instability..."
-                  className="flex-1 bg-[#0A0A0A] border border-[#2A2A2A] rounded-2xl px-6 py-4 outline-none text-lg text-[#E5E5E5] focus:border-[#C8A75D] transition-all"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAnalyze()}
+                  disabled={analyzing}
+                  className="flex-1 bg-[#0A0A0A] border border-[#2A2A2A] rounded-2xl px-6 py-4 outline-none text-lg text-[#E5E5E5] focus:border-[#C8A75D] transition-all disabled:opacity-50"
                 />
 
-                <button className="bg-gradient-to-r from-[#C8A75D] via-[#E5D3A1] to-[#F5F5F5] text-black font-black px-7 py-4 rounded-2xl hover:scale-[1.02] transition-all duration-300 shadow-[0_0_35px_rgba(200,167,93,0.25)]">
-                  Analyze
+                <button
+                  onClick={handleAnalyze}
+                  disabled={analyzing}
+                  className="bg-gradient-to-r from-[#C8A75D] via-[#E5D3A1] to-[#F5F5F5] text-black font-black px-7 py-4 rounded-2xl hover:scale-[1.02] transition-all duration-300 shadow-[0_0_35px_rgba(200,167,93,0.25)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {analyzing ? (
+                    <>
+                      <Loader2 className="animate-spin" size={20} />
+                      Analyzing...
+                    </>
+                  ) : (
+                    'Analyze'
+                  )}
                 </button>
 
               </div>
+
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400"
+                >
+                  {error}
+                </motion.div>
+              )}
+
+              {orchestrationData && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3 text-green-400"
+                >
+                  ✓ Analysis complete: {orchestrationData.success_count} agents executed in {orchestrationData.total_execution_time.toFixed(2)}s
+                </motion.div>
+              )}
             </motion.div>
 
             {/* METRICS */}
@@ -370,17 +455,16 @@ export default function App() {
                   </div>
 
                   <h1 className="text-7xl lg:text-8xl font-black text-[#D4AF37] metric-number">
-                    82%
+                    {riskScore}%
                   </h1>
 
-                  <p className="text-red-400 font-bold mt-5 tracking-widest text-sm">
-                    HIGH THREAT DETECTED
+                  <p className={`font-bold mt-5 tracking-widest text-sm ${riskScore > 70 ? 'text-red-400' : riskScore > 40 ? 'text-yellow-400' : 'text-green-400'}`}>
+                    {riskScore > 70 ? 'HIGH THREAT DETECTED' : riskScore > 40 ? 'MODERATE RISK' : 'LOW RISK'}
                   </p>
 
                   <p className="text-[#CFCFCF] mt-6 leading-relaxed">
-                    BlackSwan AI identified elevated disruption
-                    patterns across semiconductor procurement and
-                    logistics systems.
+                    {riskAgent?.data?.identified_risks?.[0]?.description ||
+                     "BlackSwan AI identified elevated disruption patterns across semiconductor procurement and logistics systems."}
                   </p>
                 </motion.div>
 
@@ -392,13 +476,21 @@ export default function App() {
                     Executive Intelligence Briefing
                   </h2>
 
-                  <p className="text-[#D0D0D0] leading-relaxed">
-                    Autonomous multi-agent analysis identified
-                    geopolitical instability, supplier volatility,
-                    and operational bottlenecks as primary risk
-                    drivers. Immediate supplier diversification and
-                    contingency planning are strongly recommended.
-                  </p>
+                  <div className="text-[#D0D0D0] leading-relaxed space-y-3">
+                    {executiveInsights.map((insight, idx) => (
+                      <p key={idx}>{insight}</p>
+                    ))}
+                    {executiveAgent?.data?.recommendations && (
+                      <div className="mt-4 pt-4 border-t border-[#2A2A2A]">
+                        <p className="text-[#D4AF37] font-semibold mb-2">Recommendations:</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          {executiveAgent.data.recommendations.map((rec, idx) => (
+                            <li key={idx}>{rec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </motion.div>
 
                 {/* LIVE FEED */}
@@ -410,19 +502,41 @@ export default function App() {
                   </h2>
 
                   <div className="space-y-5 text-sm">
-
-                    <div className="border-l-2 border-[#D4AF37] pl-4 text-[#D0D0D0]">
-                      Data Agent collected 248 enterprise signals
-                    </div>
-
-                    <div className="border-l-2 border-red-400 pl-4 text-[#D0D0D0]">
-                      Risk Agent updated critical threat score
-                    </div>
-
-                    <div className="border-l-2 border-green-400 pl-4 text-[#D0D0D0]">
-                      Executive intelligence report generated
-                    </div>
-
+                    {orchestrationData?.responses ? (
+                      orchestrationData.responses.map((response, idx) => {
+                        const colors = {
+                          'DataAgent': 'border-[#D4AF37]',
+                          'RiskAgent': 'border-red-400',
+                          'StrategyAgent': 'border-blue-400',
+                          'ExecutiveAgent': 'border-green-400'
+                        };
+                        return (
+                          <motion.div
+                            key={idx}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.1 }}
+                            className={`border-l-2 ${colors[response.agent_name] || 'border-white'} pl-4 text-[#D0D0D0]`}
+                          >
+                            {response.agent_name} {response.status === 'success' ? '✓' : '✗'} -
+                            Confidence: {(response.confidence * 100).toFixed(0)}%
+                            ({response.execution_time.toFixed(2)}s)
+                          </motion.div>
+                        );
+                      })
+                    ) : (
+                      <>
+                        <div className="border-l-2 border-[#D4AF37] pl-4 text-[#D0D0D0]">
+                          Data Agent collected 248 enterprise signals
+                        </div>
+                        <div className="border-l-2 border-red-400 pl-4 text-[#D0D0D0]">
+                          Risk Agent updated critical threat score
+                        </div>
+                        <div className="border-l-2 border-green-400 pl-4 text-[#D0D0D0]">
+                          Executive intelligence report generated
+                        </div>
+                      </>
+                    )}
                   </div>
                 </motion.div>
 

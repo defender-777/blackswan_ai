@@ -8,6 +8,11 @@ pydantic-settings==2.6.0
 python-dotenv==1.0.1
 python-multipart==0.0.12
 
+# IBM watsonx.ai (optional - install when credentials available)
+# Uncomment to enable real AI-powered intelligence:
+# ibm-watsonx-ai>=0.2.0
+# ibm-cloud-sdk-core>=3.16.0
+
 # Optional: AI/ML (uncomment when needed)
 # openai==1.54.3
 # langchain==0.3.7

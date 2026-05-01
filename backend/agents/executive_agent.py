@@ -2,6 +2,7 @@ from typing import Dict, Any
 from datetime import datetime
 import time
 from backend.core.base_agent import BaseAgent, AgentContext, AgentResponse
+from backend.services.watsonx_client import get_watsonx_client
 
 class ExecutiveAgent(BaseAgent):
     """Executive-level strategic decision making agent"""
@@ -28,8 +29,12 @@ class ExecutiveAgent(BaseAgent):
             query = kwargs.get("query", "Provide strategic analysis")
             business_context = kwargs.get("business_context", {})
             
-            # Executive analysis logic
-            analysis = await self._analyze_executive_query(query, business_context)
+            # Generate AI-powered executive intelligence using watsonx.ai
+            watsonx_client = get_watsonx_client()
+            analysis = await watsonx_client.generate_executive_intelligence(
+                query=query,
+                business_context=business_context
+            )
             
             response = AgentResponse(
                 agent_name=self.name,
@@ -51,35 +56,5 @@ class ExecutiveAgent(BaseAgent):
         except Exception as e:
             return await self.handle_error(context, e)
     
-    async def _analyze_executive_query(
-        self,
-        query: str,
-        business_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Perform executive-level analysis"""
-        # Placeholder for LLM integration
-        return {
-            "insights": [
-                "Market positioning analysis required",
-                "Strategic alignment with business objectives",
-                "Resource allocation optimization needed"
-            ],
-            "recommendations": [
-                "Prioritize digital transformation initiatives",
-                "Strengthen competitive advantages",
-                "Explore strategic partnerships"
-            ],
-            "risks": [
-                "Market volatility",
-                "Regulatory changes",
-                "Technology disruption"
-            ],
-            "opportunities": [
-                "Emerging market expansion",
-                "Innovation in product offerings",
-                "Operational efficiency gains"
-            ],
-            "confidence": 0.85
-        }
 
 # Made with Bob
