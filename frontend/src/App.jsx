@@ -24,6 +24,23 @@ import { executeOrchestration } from "./services/api";
 import { motion, AnimatePresence } from "framer-motion";
 
 /**
+ * Generate LIVE orchestration simulation events during analysis
+ * These appear immediately and feel like real-time agent coordination
+ */
+const generateLiveOrchestrationEvents = () => {
+  return [
+    { agent: "DataAgent", message: "Initializing global intelligence collection...", color: "#D4AF37", severity: "info", delay: 0 },
+    { agent: "DataAgent", message: "Mapping operational dependencies and exposure vectors...", color: "#D4AF37", severity: "info", delay: 1200 },
+    { agent: "RiskAgent", message: "Analyzing threat landscape and escalation probabilities...", color: "#EF4444", severity: "warning", delay: 2400 },
+    { agent: "RiskAgent", message: "Quantifying operational risk exposure...", color: "#EF4444", severity: "warning", delay: 3600 },
+    { agent: "StrategyAgent", message: "Generating mitigation protocols and contingency pathways...", color: "#60A5FA", severity: "info", delay: 4800 },
+    { agent: "StrategyAgent", message: "Orchestrating failover and continuity strategies...", color: "#60A5FA", severity: "info", delay: 6000 },
+    { agent: "ExecutiveAgent", message: "Synthesizing executive intelligence briefing...", color: "#4ADE80", severity: "info", delay: 7200 },
+    { agent: "ExecutiveAgent", message: "Coordinating cross-agent consensus...", color: "#4ADE80", severity: "success", delay: 8400 },
+  ];
+};
+
+/**
  * Generate dynamic orchestration events from AI response content
  * Extracts key phrases and converts them into live telemetry events
  */
@@ -40,7 +57,7 @@ const generateOrchestrationEvents = (orchestrationData) => {
     return [];
   }
   
-  // Check multiple possible response structures
+  // Check multiple possible response structures - DYNAMIC DETECTION
   let responses = null;
   
   if (orchestrationData.responses) {
@@ -49,15 +66,22 @@ const generateOrchestrationEvents = (orchestrationData) => {
   } else if (orchestrationData.agent_results) {
     responses = orchestrationData.agent_results;
     console.log("✓ Found responses at: orchestrationData.agent_results");
-  } else if (orchestrationData.data?.responses) {
-    responses = orchestrationData.data.responses;
-    console.log("✓ Found responses at: orchestrationData.data.responses");
   } else if (orchestrationData.results) {
     responses = orchestrationData.results;
     console.log("✓ Found responses at: orchestrationData.results");
+  } else if (orchestrationData.data?.responses) {
+    responses = orchestrationData.data.responses;
+    console.log("✓ Found responses at: orchestrationData.data.responses");
+  } else if (orchestrationData.execution?.responses) {
+    responses = orchestrationData.execution.responses;
+    console.log("✓ Found responses at: orchestrationData.execution.responses");
+  } else if (orchestrationData.agents) {
+    responses = orchestrationData.agents;
+    console.log("✓ Found responses at: orchestrationData.agents");
   } else {
     console.error("❌ COULD NOT FIND AGENT RESPONSES IN ORCHESTRATION DATA");
     console.error("Available keys:", Object.keys(orchestrationData));
+    console.error("Try adding the correct path to generateOrchestrationEvents()");
     return [];
   }
   
@@ -79,12 +103,15 @@ const generateOrchestrationEvents = (orchestrationData) => {
     console.log("Response structure:", JSON.stringify(response, null, 2));
     
     const agentName = response.agent_name;
-    const agentData = response.data;
+    
+    // Support multiple data field variants
+    const agentData = response.data || response.result || response.output || response.payload || {};
+    
     const color = agentColors[agentName] || "#D4AF37";
     
     console.log(`Agent: ${agentName}`);
-    console.log(`Has data: ${!!agentData}`);
-    if (agentData) {
+    console.log(`Has data: ${!!agentData && Object.keys(agentData).length > 0}`);
+    if (agentData && Object.keys(agentData).length > 0) {
       console.log(`Data keys: ${Object.keys(agentData).join(', ')}`);
     }
     
@@ -165,8 +192,21 @@ const generateOrchestrationEvents = (orchestrationData) => {
     
     if (agentName === "ExecutiveAgent" && agentData) {
       // Extract executive events from AI-generated content
-      if (agentData.strategic_insights) {
-        agentData.strategic_insights.slice(0, 2).forEach(insight => {
+      // Support multiple field name variants
+      const insights = agentData.strategic_insights || agentData.insights || agentData.analysis || [];
+      const recommendations = agentData.recommendations || agentData.actions || agentData.mitigation_actions || [];
+      const risks = agentData.risk_factors || agentData.risks || agentData.operational_risks || [];
+      const opportunities = agentData.opportunities || agentData.strategic_opportunities || [];
+      
+      console.log(`  ExecutiveAgent fields found:`);
+      console.log(`    - insights: ${insights.length}`);
+      console.log(`    - recommendations: ${recommendations.length}`);
+      console.log(`    - risks: ${risks.length}`);
+      console.log(`    - opportunities: ${opportunities.length}`);
+      
+      // Extract insights (first 2)
+      if (insights.length > 0) {
+        insights.slice(0, 2).forEach(insight => {
           const shortInsight = insight.length > 70 ? insight.substring(0, 70) + "..." : insight;
           events.push({
             agent: agentName,
@@ -176,17 +216,19 @@ const generateOrchestrationEvents = (orchestrationData) => {
           });
         });
       }
-      if (agentData.risk_factors) {
-        agentData.risk_factors.slice(0, 1).forEach(risk => {
-          const shortRisk = risk.length > 70 ? risk.substring(0, 70) + "..." : risk;
-          events.push({
-            agent: agentName,
-            message: shortRisk,
-            color,
-            severity: "critical"
-          });
+      
+      // Extract critical risk (first 1)
+      if (risks.length > 0) {
+        const risk = risks[0];
+        const shortRisk = risk.length > 70 ? risk.substring(0, 70) + "..." : risk;
+        events.push({
+          agent: agentName,
+          message: shortRisk,
+          color,
+          severity: "critical"
         });
       }
+      
       // Add completion event
       events.push({
         agent: agentName,
@@ -260,37 +302,91 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Intelligence stream generator - DYNAMIC from orchestration response
+  // LIVE orchestration simulation - starts IMMEDIATELY when analyzing begins
   useEffect(() => {
-    if (analyzing && orchestrationData) {
-      // Generate events from actual AI response
-      const dynamicEvents = generateOrchestrationEvents(orchestrationData);
+    if (analyzing && !orchestrationData) {
+      console.log("🎬 STARTING LIVE ORCHESTRATION SIMULATION");
       
-      if (dynamicEvents.length > 0) {
-        // Stream events progressively with staggered timing
-        let eventIndex = 0;
-        const interval = setInterval(() => {
-          if (eventIndex < dynamicEvents.length) {
-            const event = dynamicEvents[eventIndex];
-            setIntelligenceStream(prev => {
-              const newStream = [
-                ...prev,
-                {
-                  ...event,
-                  timestamp: new Date().toLocaleTimeString(),
-                  id: Date.now() + Math.random()
-                }
-              ];
-              return newStream.slice(-12); // Keep last 12 messages
-            });
-            eventIndex++;
-          }
-        }, 800); // Staggered event timing
-        
-        return () => clearInterval(interval);
-      }
+      const liveEvents = generateLiveOrchestrationEvents();
+      
+      // Stream simulation events with their specified delays
+      liveEvents.forEach((event) => {
+        setTimeout(() => {
+          setIntelligenceStream(prev => {
+            const updated = [
+              ...prev,
+              {
+                ...event,
+                timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
+                id: `sim-${Date.now()}-${Math.random()}`,
+                isSimulation: true
+              }
+            ];
+            return updated.slice(-12);
+          });
+        }, event.delay);
+      });
     }
   }, [analyzing, orchestrationData]);
+
+  // REAL AI telemetry - replaces simulation when orchestration completes
+  useEffect(() => {
+    if (!orchestrationData) return;
+    
+    console.log("🎬 ORCHESTRATION DATA DETECTED");
+    console.log("🔄 TRANSITIONING TO REAL AI TELEMETRY");
+    
+    const dynamicEvents = generateOrchestrationEvents(orchestrationData);
+    
+    console.log("📊 GENERATED EVENTS:", dynamicEvents);
+    console.log("📈 EVENT COUNT:", dynamicEvents.length);
+    
+    if (dynamicEvents.length === 0) {
+      console.error("❌ NO EVENTS GENERATED");
+      return;
+    }
+    
+    // Clear simulation events and start real telemetry
+    setIntelligenceStream([]);
+    
+    let eventIndex = 0;
+    
+    const interval = setInterval(() => {
+      if (eventIndex < dynamicEvents.length) {
+        const event = dynamicEvents[eventIndex];
+        
+        console.log(`📡 STREAMING REAL EVENT ${eventIndex + 1}/${dynamicEvents.length}:`, event);
+        
+        setIntelligenceStream(prev => {
+          const updated = [
+            ...prev,
+            {
+              ...event,
+              timestamp: new Date().toLocaleTimeString('en-US', {
+                hour12: false,
+              }),
+              id: `real-${Date.now()}-${Math.random()}`,
+              isSimulation: false
+            }
+          ];
+          
+          console.log("📺 UPDATED STREAM LENGTH:", updated.length);
+          
+          return updated.slice(-12);
+        });
+        
+        eventIndex++;
+      } else {
+        clearInterval(interval);
+        console.log("✅ REAL AI TELEMETRY STREAM COMPLETE");
+      }
+    }, 800);
+    
+    return () => {
+      clearInterval(interval);
+    };
+    
+  }, [orchestrationData]);
 
   // Auto-scroll intelligence stream
   useEffect(() => {
@@ -447,17 +543,118 @@ export default function App() {
   const strategyAgent = getAgentData('StrategyAgent');
   const executiveAgent = getAgentData('ExecutiveAgent');
 
-  // Calculate risk score from risk agent
-  const riskScore = riskAgent?.data?.risk_profile?.risk_score
-    ? Math.round(riskAgent.data.risk_profile.risk_score * 10)
-    : orchestrationData ? 87 : 82;
-
-  // DYNAMIC AI INTELLIGENCE EXTRACTION
+  // DYNAMIC AI INTELLIGENCE EXTRACTION - MUST BE BEFORE generateDynamicMetrics()
   // Extract real watsonx.ai generated intelligence from ExecutiveAgent response
   const executiveInsights = executiveAgent?.data?.strategic_insights || [];
   const executiveRecommendations = executiveAgent?.data?.recommendations || [];
   const executiveRisks = executiveAgent?.data?.risk_factors || [];
   const executiveOpportunities = executiveAgent?.data?.opportunities || [];
+
+  /**
+   * DETERMINISTIC METRICS GENERATION
+   * Derives dashboard metrics PURELY from AI responses and query context
+   * NO RANDOMIZATION - metrics remain stable for same orchestration response
+   * NOTE: This function references executiveRisks and executiveInsights, so they MUST be defined above
+   */
+  const generateDynamicMetrics = () => {
+    if (!orchestrationData) {
+      return {
+        riskScore: 82,
+        threatPredictions: 148,
+        activeOrchestrations: 12,
+        disruptionSummary: "Multi-agent analysis detecting elevated operational disruption patterns across global enterprise infrastructure."
+      };
+    }
+
+    // Extract AI content counts for deterministic calculation
+    const riskCount = executiveRisks?.length || 0;
+    const insightCount = executiveInsights?.length || 0;
+    const recommendationCount = executiveRecommendations?.length || 0;
+    const opportunityCount = executiveOpportunities?.length || 0;
+    
+    // Extract query keywords for context
+    const queryLower = query.toLowerCase();
+    
+    // Keyword-based severity detection
+    const criticalKeywords = ['cyber', 'attack', 'breach', 'hack', 'ransomware', 'compromise', 'critical'];
+    const highKeywords = ['cloud', 'outage', 'failure', 'disruption', 'crisis', 'emergency'];
+    const mediumKeywords = ['energy', 'supply', 'chain', 'logistics', 'semiconductor', 'infrastructure'];
+    
+    const hasCritical = criticalKeywords.some(kw => queryLower.includes(kw));
+    const hasHigh = highKeywords.some(kw => queryLower.includes(kw));
+    const hasMedium = mediumKeywords.some(kw => queryLower.includes(kw));
+    
+    // DETERMINISTIC risk score calculation - NO RANDOMIZATION
+    let baseRisk = 75;
+    if (riskAgent?.data?.risk_profile?.risk_score) {
+      // Use actual AI-generated risk score if available
+      baseRisk = Math.round(riskAgent.data.risk_profile.risk_score * 10);
+    } else {
+      // Deterministic calculation based on AI content
+      // More risks = higher risk score
+      const riskMultiplier = Math.min(riskCount * 3, 15); // Cap at +15%
+      
+      if (hasCritical) {
+        baseRisk = 88 + riskMultiplier; // 88-97% for critical
+      } else if (hasHigh) {
+        baseRisk = 82 + riskMultiplier; // 82-92% for high
+      } else if (hasMedium) {
+        baseRisk = 76 + riskMultiplier; // 76-86% for medium
+      } else {
+        baseRisk = 70 + riskMultiplier; // 70-85% for general
+      }
+      
+      // Cap at 97%
+      baseRisk = Math.min(baseRisk, 97);
+    }
+    
+    // DETERMINISTIC threat predictions - NO RANDOMIZATION
+    // Formula: (risks × 40) + (recommendations × 25) + (insights × 10) + base
+    const baseThreatCount = hasCritical ? 180 : hasHigh ? 140 : 100;
+    const threatPredictions = baseThreatCount + (riskCount * 40) + (recommendationCount * 25) + (insightCount * 10);
+    
+    // DETERMINISTIC active orchestrations - NO RANDOMIZATION
+    // Use actual agent count from orchestration response
+    const agentCount = orchestrationData?.responses?.length || 4;
+    const baseOrchestrations = hasCritical ? 18 : hasHigh ? 14 : 10;
+    const activeOrchestrations = baseOrchestrations + agentCount + Math.floor(riskCount / 2);
+    
+    // Generate contextual disruption summary
+    let disruptionSummary = "";
+    
+    if (queryLower.includes('cyber') || queryLower.includes('attack') || queryLower.includes('breach')) {
+      disruptionSummary = "High-severity infrastructure compromise detected across financial transaction and authentication systems.";
+    } else if (queryLower.includes('cloud') || queryLower.includes('outage')) {
+      disruptionSummary = "Critical cloud dependency instability detected across enterprise SaaS and payment routing infrastructure.";
+    } else if (queryLower.includes('energy') || queryLower.includes('lng') || queryLower.includes('gas')) {
+      disruptionSummary = "Escalating LNG transportation disruption detected across maritime logistics and global energy corridors.";
+    } else if (queryLower.includes('semiconductor') || queryLower.includes('taiwan') || queryLower.includes('chip')) {
+      disruptionSummary = "Critical semiconductor supply chain concentration risk detected across APAC manufacturing dependencies.";
+    } else if (queryLower.includes('supply') || queryLower.includes('logistics')) {
+      disruptionSummary = "Multi-vector supply chain disruption detected across global logistics and operational dependencies.";
+    } else if (executiveRisks && executiveRisks.length > 0) {
+      // Use first risk as context if available
+      disruptionSummary = executiveRisks[0];
+    } else {
+      disruptionSummary = "Multi-agent analysis detecting elevated operational disruption patterns across global enterprise infrastructure.";
+    }
+    
+    console.log("📊 DYNAMIC METRICS GENERATED:");
+    console.log("  Risk Score:", baseRisk + "%");
+    console.log("  Threat Predictions:", threatPredictions);
+    console.log("  Active Orchestrations:", activeOrchestrations);
+    console.log("  Disruption Summary:", disruptionSummary);
+    
+    return {
+      riskScore: baseRisk,
+      threatPredictions,
+      activeOrchestrations,
+      disruptionSummary
+    };
+  };
+
+  const dynamicMetrics = generateDynamicMetrics();
+  const riskScore = dynamicMetrics.riskScore;
   
   // FRONTEND RENDERING DEBUG - Log what will be rendered
   if (orchestrationData && executiveAgent) {
@@ -756,7 +953,7 @@ export default function App() {
               </motion.div>
             )}
 
-            {/* METRICS */}
+            {/* DYNAMIC METRICS - AI-DRIVEN AND QUERY-REACTIVE */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
 
               {[
@@ -765,41 +962,54 @@ export default function App() {
                   value: `${riskScore}%`,
                   icon: ShieldAlert,
                   color: "text-red-400",
-                  status: riskScore > 70 ? "CRITICAL" : "ELEVATED"
+                  status: riskScore > 85 ? "CRITICAL" : riskScore > 70 ? "ELEVATED" : "MODERATE",
+                  glow: riskScore > 85 ? "shadow-[0_0_25px_rgba(239,68,68,0.3)]" : ""
                 },
                 {
                   title: "Autonomous Intelligence Units",
                   value: "4",
                   icon: Cpu,
                   color: "text-[#D4AF37]",
-                  status: "ACTIVE"
+                  status: orchestrationData ? "COMPLETE" : analyzing ? "ACTIVE" : "STANDBY",
+                  glow: analyzing ? "shadow-[0_0_25px_rgba(212,175,55,0.2)]" : ""
                 },
                 {
                   title: "Threat Predictions",
-                  value: "148",
+                  value: orchestrationData ? dynamicMetrics.threatPredictions.toString() : "148",
                   icon: Radar,
                   color: "text-white",
-                  status: "MONITORING"
+                  status: "MONITORING",
+                  glow: ""
                 },
                 {
                   title: "Active Orchestrations",
-                  value: "12",
+                  value: orchestrationData ? dynamicMetrics.activeOrchestrations.toString() : "12",
                   icon: Workflow,
                   color: "text-green-400",
-                  status: "COORDINATING"
+                  status: analyzing ? "COORDINATING" : orchestrationData ? "COMPLETE" : "READY",
+                  glow: analyzing ? "shadow-[0_0_25px_rgba(74,222,128,0.2)]" : ""
                 },
               ].map((item, index) => (
                 <motion.div
                   key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
                   whileHover={{
                     y: -4,
                     scale: 1.02,
                   }}
-                  className="bg-[#111111]/80 border border-[#2A2A2A] backdrop-blur-2xl rounded-[28px] p-6 shadow-[0_0_30px_rgba(255,255,255,0.02)]"
+                  className={`bg-[#111111]/80 border border-[#2A2A2A] backdrop-blur-2xl rounded-[28px] p-6 shadow-[0_0_30px_rgba(255,255,255,0.02)] ${item.glow}`}
                 >
                   <div className="flex items-center justify-between mb-6">
 
-                    <item.icon className={item.color} size={30} />
+                    <item.icon
+                      className={item.color}
+                      size={30}
+                      style={{
+                        filter: item.glow ? `drop-shadow(0 0 8px ${item.color.includes('red') ? 'rgba(239,68,68,0.5)' : item.color.includes('D4AF37') ? 'rgba(212,175,55,0.5)' : 'rgba(74,222,128,0.5)'})` : 'none'
+                      }}
+                    />
 
                     <p className="text-[#5A5A5A] text-xs tracking-[0.3em]">
                       {item.status}
@@ -810,9 +1020,15 @@ export default function App() {
                     {item.title}
                   </h2>
 
-                  <h1 className="text-4xl font-black metric-number tracking-tight">
+                  <motion.h1
+                    key={item.value}
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                    className="text-4xl font-black metric-number tracking-tight"
+                  >
                     {item.value}
-                  </h1>
+                  </motion.h1>
                 </motion.div>
               ))}
             </div>
@@ -1251,32 +1467,62 @@ export default function App() {
               {/* RIGHT SIDEBAR */}
               <div className="space-y-6">
 
-                {/* RISK CARD */}
+                {/* DYNAMIC DISRUPTION RISK CARD - QUERY-REACTIVE */}
                 <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
                   whileHover={{ scale: 1.02 }}
-                  className="bg-gradient-to-br from-[#1A1408] to-[#130F08] border border-[#3A2F1A] backdrop-blur-2xl rounded-[32px] p-6 lg:p-8 shadow-[0_0_60px_rgba(200,167,93,0.08)]"
+                  className={`bg-gradient-to-br from-[#1A1408] to-[#130F08] border backdrop-blur-2xl rounded-[32px] p-6 lg:p-8 shadow-[0_0_60px_rgba(200,167,93,0.08)] ${
+                    riskScore > 85 ? 'border-red-500/40 shadow-[0_0_60px_rgba(239,68,68,0.15)]' : 'border-[#3A2F1A]'
+                  }`}
                 >
                   <div className="flex items-center gap-3 mb-5">
 
-                    <Activity className="text-red-400" />
+                    <Activity
+                      className={riskScore > 85 ? "text-red-400" : "text-orange-400"}
+                      style={{
+                        filter: riskScore > 85 ? 'drop-shadow(0 0 8px rgba(239,68,68,0.5))' : 'none'
+                      }}
+                    />
 
                     <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">
                       Disruption Risk
                     </h2>
                   </div>
 
-                  <h1 className="text-7xl lg:text-8xl font-black text-[#D4AF37] metric-number">
+                  <motion.h1
+                    key={riskScore}
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 150, damping: 12 }}
+                    className="text-7xl lg:text-8xl font-black text-[#D4AF37] metric-number"
+                    style={{
+                      textShadow: riskScore > 85 ? '0 0 20px rgba(239,68,68,0.3)' : 'none'
+                    }}
+                  >
                     {riskScore}%
-                  </h1>
+                  </motion.h1>
 
-                  <p className={`font-bold mt-5 tracking-widest text-sm ${riskScore > 70 ? 'text-red-400' : riskScore > 40 ? 'text-yellow-400' : 'text-green-400'}`}>
-                    {riskScore > 70 ? 'CRITICAL THREAT LEVEL' : riskScore > 40 ? 'ELEVATED RISK' : 'NOMINAL OPERATIONS'}
-                  </p>
+                  <motion.p
+                    key={`status-${riskScore}`}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`font-bold mt-5 tracking-widest text-sm ${
+                      riskScore > 85 ? 'text-red-400' : riskScore > 70 ? 'text-orange-400' : riskScore > 40 ? 'text-yellow-400' : 'text-green-400'
+                    }`}
+                  >
+                    {riskScore > 85 ? 'CRITICAL THREAT LEVEL' : riskScore > 70 ? 'ELEVATED RISK' : riskScore > 40 ? 'MODERATE RISK' : 'NOMINAL OPERATIONS'}
+                  </motion.p>
 
-                  <p className="text-[#CFCFCF] mt-6 leading-relaxed">
-                    {riskAgent?.data?.risk_profile?.business_impact ||
-                     "Multi-agent analysis detected elevated operational disruption patterns across semiconductor supply chains and logistics infrastructure."}
-                  </p>
+                  <motion.p
+                    key={dynamicMetrics.disruptionSummary}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-[#CFCFCF] mt-6 leading-relaxed"
+                  >
+                    {dynamicMetrics.disruptionSummary}
+                  </motion.p>
                 </motion.div>
 
                 {/* LIVE ORCHESTRATION FEED */}
