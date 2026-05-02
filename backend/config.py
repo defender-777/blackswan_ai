@@ -1,9 +1,24 @@
+from dotenv import load_dotenv
+load_dotenv()
+
+import os
+
+print("========== ENV DEBUG ==========")
+print("WATSONX_API_KEY:", os.getenv("WATSONX_API_KEY"))
+print("WATSONX_PROJECT_ID:", os.getenv("WATSONX_PROJECT_ID"))
+print("================================")
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 from typing import List
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore"
+    )
+
     
     # Application
     APP_NAME: str = "BlackSwan AI"

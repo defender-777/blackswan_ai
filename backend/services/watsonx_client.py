@@ -17,20 +17,31 @@ class WatsonxClient:
         self.url = os.getenv("WATSONX_URL", "https://us-south.ml.cloud.ibm.com")
         self.model_id = os.getenv("WATSONX_MODEL_ID", "ibm/granite-13b-chat-v2")
         
+        logger.info("=" * 60)
+        logger.info("WatsonxClient Initialization")
+        logger.info(f"API Key configured: {bool(self.api_key)}")
+        logger.info(f"Project ID configured: {bool(self.project_id)}")
+        logger.info(f"URL: {self.url}")
+        logger.info(f"Model ID: {self.model_id}")
+        
         self.available = self._check_availability()
         
         if self.available:
             self._initialize_client()
+        else:
+            logger.warning("⚠️  Using FALLBACK mode - responses will be template-based")
+        logger.info("=" * 60)
     
     def _check_availability(self) -> bool:
         """Check if watsonx credentials are configured"""
         if not self.api_key or not self.project_id:
             logger.warning(
-                "watsonx.ai credentials not configured. "
-                "Set WATSONX_API_KEY and WATSONX_PROJECT_ID environment variables. "
-                "Falling back to mock responses."
+                "❌ watsonx.ai credentials NOT configured. "
+                "Set WATSONX_API_KEY and WATSONX_PROJECT_ID in backend/.env file. "
+                "Falling back to intelligent mock responses."
             )
             return False
+        logger.info("✓ watsonx.ai credentials found")
         return True
     
     def _initialize_client(self):
@@ -39,6 +50,8 @@ class WatsonxClient:
             from ibm_watsonx_ai import APIClient
             from ibm_watsonx_ai import Credentials
             from ibm_watsonx_ai.foundation_models import ModelInference
+            
+            logger.info("Initializing watsonx.ai API client...")
             
             credentials = Credentials(
                 url=self.url,
@@ -52,16 +65,18 @@ class WatsonxClient:
                 project_id=self.project_id
             )
             
-            logger.info(f"watsonx.ai client initialized with model: {self.model_id}")
+            logger.info(f"✓ watsonx.ai client initialized successfully")
+            logger.info(f"✓ Using model: {self.model_id}")
             
-        except ImportError:
-            logger.warning(
-                "ibm-watsonx-ai package not installed. "
+        except ImportError as e:
+            logger.error(
+                f"❌ ibm-watsonx-ai package not installed: {e}\n"
                 "Install with: pip install ibm-watsonx-ai"
             )
             self.available = False
         except Exception as e:
-            logger.error(f"Failed to initialize watsonx.ai client: {e}")
+            logger.error(f"❌ Failed to initialize watsonx.ai client: {e}")
+            logger.exception("Full traceback:")
             self.available = False
     
     async def generate_executive_intelligence(
@@ -79,11 +94,21 @@ class WatsonxClient:
         Returns:
             Dict with strategic insights, recommendations, risks, and opportunities
         """
+        logger.info("=" * 60)
+        logger.info("Executive Intelligence Generation Request")
+        logger.info(f"Query: {query}")
+        logger.info(f"watsonx.ai available: {self.available}")
+        
         if not self.available:
+            logger.warning("⚠️  Using FALLBACK response (watsonx.ai not available)")
             return self._get_fallback_response(query)
         
         try:
             prompt = self._build_executive_prompt(query, business_context)
+            logger.info(f"Generated prompt length: {len(prompt)} characters")
+            logger.debug(f"Full prompt:\n{prompt}")
+            
+            logger.info("Calling watsonx.ai model.generate()...")
             
             # Generate response using watsonx.ai
             response = self.model.generate(
@@ -96,12 +121,33 @@ class WatsonxClient:
                 }
             )
             
+            logger.info("✓ watsonx.ai response received")
+            
             # Parse and structure the response
-            generated_text = response.get("results", [{}])[0].get("generated_text", "")
-            return self._parse_executive_response(generated_text, query)
+            print("WATSONX RAW RESPONSE:")
+            print(response)
+            print(type(response))
+            generated_text = ""
+
+            if isinstance(response, list) and len(response) > 0:
+                generated_text= response[0].get("generated_text", "")
+            elif isinstance(response, dict):    
+                generated_text= response.get("results", [{}])[0].get("generated_text", "")
+            logger.info(f"Generated text length: {len(generated_text)} characters")
+            logger.debug(f"Generated text:\n{generated_text}")
+            
+            parsed_response = self._parse_executive_response(generated_text, query)
+            logger.info("✓ Response parsed successfully")
+            logger.info(f"Insights: {len(parsed_response['insights'])}")
+            logger.info(f"Recommendations: {len(parsed_response['recommendations'])}")
+            logger.info("=" * 60)
+            
+            return parsed_response
             
         except Exception as e:
-            logger.error(f"watsonx.ai generation failed: {e}")
+            logger.error(f"❌ watsonx.ai generation failed: {e}")
+            logger.exception("Full traceback:")
+            logger.warning("Falling back to intelligent mock response")
             return self._get_fallback_response(query)
     
     def _build_executive_prompt(
@@ -109,23 +155,46 @@ class WatsonxClient:
         query: str,
         business_context: Optional[Dict[str, Any]]
     ) -> str:
-        """Build executive intelligence prompt for watsonx.ai"""
+        """Build enterprise-grade executive intelligence prompt for watsonx.ai"""
         
         context_str = ""
         if business_context:
-            context_str = f"\nBusiness Context: {business_context}"
+            context_str = f"\n\nAdditional Business Context:\n{business_context}"
         
-        prompt = f"""You are an executive AI advisor for enterprise intelligence. Analyze the following query and provide strategic insights.
+        prompt = f"""You are a Fortune 500 enterprise crisis intelligence AI system providing executive-level operational intelligence.
 
-Query: {query}{context_str}
+Your role is to analyze geopolitical disruptions, supply-chain instability, cybersecurity threats, energy crises, logistics failures, and black swan operational risks.
 
-Provide a comprehensive executive intelligence briefing with:
-1. Strategic Insights (3-4 key insights)
-2. Recommendations (3-4 actionable recommendations)
-3. Risk Factors (3-4 potential risks)
-4. Opportunities (3-4 strategic opportunities)
+CRISIS SCENARIO:
+{query}{context_str}
 
-Format your response clearly with these sections."""
+REQUIRED OUTPUT:
+Generate an executive intelligence briefing with the following sections:
+
+1. STRATEGIC INSIGHTS (3-4 critical observations)
+   - Focus on operational impact, business continuity, and strategic implications
+   - Use specific metrics, timeframes, and business impact assessments
+   - Avoid generic statements
+
+2. STRATEGIC MITIGATION ACTIONS (3-4 actionable recommendations)
+   - Provide concrete, time-bound actions
+   - Include resource requirements and dependencies
+   - Prioritize by urgency and impact
+
+3. OPERATIONAL RISK EXPOSURE (3-4 specific risks)
+   - Quantify financial exposure where possible
+   - Include probability and severity assessments
+   - Identify cascading failure scenarios
+
+4. STRATEGIC OPPORTUNITIES (3-4 competitive advantages)
+   - Identify ways to turn crisis into advantage
+   - Focus on market positioning and operational resilience
+   - Include innovation and transformation opportunities
+
+Use realistic enterprise terminology. Be specific to the scenario. Avoid generic AI language.
+
+FORMAT:
+Use clear section headers and bullet points for each item."""
         
         return prompt
     
