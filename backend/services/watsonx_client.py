@@ -203,9 +203,17 @@ Use clear section headers and bullet points for each item."""
         generated_text: str,
         query: str
     ) -> Dict[str, Any]:
-        """Parse watsonx.ai response into structured format"""
+        """
+        Parse watsonx.ai response into structured format
+        Handles multiple markdown heading styles: ##, ###, numbered sections
+        NO FALLBACK ARRAYS - returns empty arrays if parsing fails
+        """
         
-        # Simple parsing - in production, use more sophisticated NLP
+        logger.info("=" * 60)
+        logger.info("PARSING WATSONX.AI RESPONSE")
+        logger.info(f"Generated text length: {len(generated_text)} characters")
+        logger.debug(f"Full generated text:\n{generated_text}")
+        
         lines = generated_text.strip().split('\n')
         
         insights = []
@@ -220,51 +228,71 @@ Use clear section headers and bullet points for each item."""
             if not line:
                 continue
             
-            # Detect sections
-            if 'insight' in line.lower():
+            # Detect section headers - support multiple formats
+            line_lower = line.lower()
+            
+            # Remove markdown headers (##, ###, ####) and numbers (1., 2., etc.)
+            clean_line = line.lstrip('#').strip()
+            clean_line = clean_line.lstrip('0123456789.').strip()
+            clean_line_lower = clean_line.lower()
+            
+            # Detect sections by keywords
+            if 'insight' in clean_line_lower and ('strategic' in clean_line_lower or 'intelligence' in clean_line_lower):
                 current_section = 'insights'
-            elif 'recommendation' in line.lower():
+                logger.info(f"✓ Detected INSIGHTS section: {line}")
+                continue
+            elif 'mitigation' in clean_line_lower or ('recommendation' in clean_line_lower and 'action' in clean_line_lower):
                 current_section = 'recommendations'
-            elif 'risk' in line.lower():
+                logger.info(f"✓ Detected RECOMMENDATIONS section: {line}")
+                continue
+            elif 'risk' in clean_line_lower and ('exposure' in clean_line_lower or 'operational' in clean_line_lower):
                 current_section = 'risks'
-            elif 'opportunit' in line.lower():
+                logger.info(f"✓ Detected RISKS section: {line}")
+                continue
+            elif 'opportunit' in clean_line_lower:
                 current_section = 'opportunities'
-            elif line.startswith(('-', '•', '*', '1.', '2.', '3.', '4.')):
-                # Extract bullet point content
-                content = line.lstrip('-•*0123456789. ')
+                logger.info(f"✓ Detected OPPORTUNITIES section: {line}")
+                continue
+            
+            # Extract bullet points - support multiple formats
+            if line.startswith(('-', '•', '*')) or line.startswith(tuple(f'{i}.' for i in range(1, 20))):
+                # Extract content after bullet/number
+                content = line.lstrip('-•*0123456789. ').strip()
+                
+                if not content or len(content) < 10:  # Skip empty or too short
+                    continue
+                
                 if current_section == 'insights':
                     insights.append(content)
+                    logger.debug(f"  → Added insight: {content[:50]}...")
                 elif current_section == 'recommendations':
                     recommendations.append(content)
+                    logger.debug(f"  → Added recommendation: {content[:50]}...")
                 elif current_section == 'risks':
                     risks.append(content)
+                    logger.debug(f"  → Added risk: {content[:50]}...")
                 elif current_section == 'opportunities':
                     opportunities.append(content)
+                    logger.debug(f"  → Added opportunity: {content[:50]}...")
         
+        logger.info("=" * 60)
+        logger.info("PARSING RESULTS:")
+        logger.info(f"Insights extracted: {len(insights)}")
+        logger.info(f"Recommendations extracted: {len(recommendations)}")
+        logger.info(f"Risks extracted: {len(risks)}")
+        logger.info(f"Opportunities extracted: {len(opportunities)}")
+        logger.info("=" * 60)
+        
+        # NO FALLBACK ARRAYS - return what we extracted, even if empty
         return {
-            "insights": insights[:4] if insights else [
-                "Strategic analysis indicates market positioning opportunities",
-                "Operational efficiency improvements recommended",
-                "Technology adoption can drive competitive advantage"
-            ],
-            "recommendations": recommendations[:4] if recommendations else [
-                "Prioritize digital transformation initiatives",
-                "Strengthen risk management frameworks",
-                "Invest in talent development"
-            ],
-            "risks": risks[:4] if risks else [
-                "Market volatility",
-                "Regulatory changes",
-                "Technology disruption"
-            ],
-            "opportunities": opportunities[:4] if opportunities else [
-                "Emerging market expansion",
-                "Innovation in product offerings",
-                "Strategic partnerships"
-            ],
-            "confidence": 0.85,
+            "insights": insights[:4],  # Limit to 4 items
+            "recommendations": recommendations[:4],
+            "risks": risks[:4],
+            "opportunities": opportunities[:4],
+            "confidence": 0.85 if (insights or recommendations or risks or opportunities) else 0.0,
             "ai_generated": True,
-            "model": self.model_id if self.available else "fallback"
+            "model": self.model_id if self.available else "fallback",
+            "parsing_success": bool(insights or recommendations or risks or opportunities)
         }
     
     def _get_fallback_response(self, query: str) -> Dict[str, Any]:

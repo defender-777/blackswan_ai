@@ -23,19 +23,210 @@ import { executeOrchestration } from "./services/api";
 
 import { motion, AnimatePresence } from "framer-motion";
 
-// AI Reasoning Stream Messages
-const reasoningMessages = [
-  { agent: "DataAgent", message: "Export anomaly detected in Taiwan semiconductor corridor", color: "#D4AF37" },
-  { agent: "RiskAgent", message: "Escalation probability increased to 87%", color: "#EF4444" },
-  { agent: "StrategyAgent", message: "Contingency rerouting pathways initiated", color: "#60A5FA" },
-  { agent: "ExecutiveAgent", message: "Board-level disruption briefing generated", color: "#4ADE80" },
-  { agent: "Orchestrator", message: "Cross-agent consensus confidence elevated", color: "#D4AF37" },
-  { agent: "RiskAgent", message: "Supplier concentration exposure exceeds safe threshold", color: "#EF4444" },
-  { agent: "StrategyAgent", message: "Emergency procurement mitigation activated", color: "#60A5FA" },
-  { agent: "DataAgent", message: "Real-time logistics monitoring activated", color: "#D4AF37" },
-  { agent: "ExecutiveAgent", message: "Strategic intelligence synthesis complete", color: "#4ADE80" },
-  { agent: "DataAgent", message: "APAC manufacturing corridor instability detected", color: "#D4AF37" },
-];
+/**
+ * Generate dynamic orchestration events from AI response content
+ * Extracts key phrases and converts them into live telemetry events
+ */
+const generateOrchestrationEvents = (orchestrationData) => {
+  console.log("╔════════════════════════════════════════════════════════════╗");
+  console.log("║     DYNAMIC ORCHESTRATION EVENT GENERATION - DEBUG        ║");
+  console.log("╚════════════════════════════════════════════════════════════╝");
+  console.log("📦 FULL ORCHESTRATION RESPONSE:");
+  console.log(JSON.stringify(orchestrationData, null, 2));
+  console.log("");
+  
+  if (!orchestrationData) {
+    console.error("❌ NO ORCHESTRATION DATA PROVIDED");
+    return [];
+  }
+  
+  // Check multiple possible response structures
+  let responses = null;
+  
+  if (orchestrationData.responses) {
+    responses = orchestrationData.responses;
+    console.log("✓ Found responses at: orchestrationData.responses");
+  } else if (orchestrationData.agent_results) {
+    responses = orchestrationData.agent_results;
+    console.log("✓ Found responses at: orchestrationData.agent_results");
+  } else if (orchestrationData.data?.responses) {
+    responses = orchestrationData.data.responses;
+    console.log("✓ Found responses at: orchestrationData.data.responses");
+  } else if (orchestrationData.results) {
+    responses = orchestrationData.results;
+    console.log("✓ Found responses at: orchestrationData.results");
+  } else {
+    console.error("❌ COULD NOT FIND AGENT RESPONSES IN ORCHESTRATION DATA");
+    console.error("Available keys:", Object.keys(orchestrationData));
+    return [];
+  }
+  
+  console.log(`📊 Found ${responses.length} agent responses`);
+  console.log("Agent responses:", responses);
+  console.log("");
+  
+  const events = [];
+  const agentColors = {
+    DataAgent: "#D4AF37",
+    RiskAgent: "#EF4444",
+    StrategyAgent: "#60A5FA",
+    ExecutiveAgent: "#4ADE80"
+  };
+  
+  // Extract events from each agent's response
+  responses.forEach((response, idx) => {
+    console.log(`\n🤖 Processing Agent ${idx + 1}/${responses.length}`);
+    console.log("Response structure:", JSON.stringify(response, null, 2));
+    
+    const agentName = response.agent_name;
+    const agentData = response.data;
+    const color = agentColors[agentName] || "#D4AF37";
+    
+    console.log(`Agent: ${agentName}`);
+    console.log(`Has data: ${!!agentData}`);
+    if (agentData) {
+      console.log(`Data keys: ${Object.keys(agentData).join(', ')}`);
+    }
+    
+    if (agentName === "DataAgent" && agentData) {
+      // Extract key data points from DataAgent
+      if (agentData.data_sources) {
+        events.push({
+          agent: agentName,
+          message: `${agentData.data_sources.length} data sources analyzed`,
+          color,
+          severity: "info"
+        });
+      }
+      if (agentData.summary) {
+        // Extract first key phrase from summary
+        const firstSentence = agentData.summary.split('.')[0];
+        if (firstSentence.length > 10 && firstSentence.length < 80) {
+          events.push({
+            agent: agentName,
+            message: firstSentence.trim(),
+            color,
+            severity: "info"
+          });
+        }
+      }
+    }
+    
+    if (agentName === "RiskAgent" && agentData) {
+      // Extract risk events
+      if (agentData.risk_profile?.risk_score) {
+        const riskScore = Math.round(agentData.risk_profile.risk_score * 100);
+        events.push({
+          agent: agentName,
+          message: `Risk exposure elevated to ${riskScore}% probability`,
+          color,
+          severity: riskScore > 75 ? "critical" : "warning"
+        });
+      }
+      if (agentData.risk_profile?.risk_factors) {
+        agentData.risk_profile.risk_factors.slice(0, 2).forEach(risk => {
+          // Extract first 60 chars of risk
+          const shortRisk = risk.length > 60 ? risk.substring(0, 60) + "..." : risk;
+          events.push({
+            agent: agentName,
+            message: shortRisk,
+            color,
+            severity: "warning"
+          });
+        });
+      }
+    }
+    
+    if (agentName === "StrategyAgent" && agentData) {
+      // Extract strategy events
+      if (agentData.strategies) {
+        agentData.strategies.slice(0, 2).forEach(strategy => {
+          const shortStrategy = strategy.length > 60 ? strategy.substring(0, 60) + "..." : strategy;
+          events.push({
+            agent: agentName,
+            message: shortStrategy,
+            color,
+            severity: "info"
+          });
+        });
+      }
+      if (agentData.summary) {
+        const firstSentence = agentData.summary.split('.')[0];
+        if (firstSentence.length > 10 && firstSentence.length < 80) {
+          events.push({
+            agent: agentName,
+            message: firstSentence.trim(),
+            color,
+            severity: "info"
+          });
+        }
+      }
+    }
+    
+    if (agentName === "ExecutiveAgent" && agentData) {
+      // Extract executive events from AI-generated content
+      if (agentData.strategic_insights) {
+        agentData.strategic_insights.slice(0, 2).forEach(insight => {
+          const shortInsight = insight.length > 70 ? insight.substring(0, 70) + "..." : insight;
+          events.push({
+            agent: agentName,
+            message: shortInsight,
+            color,
+            severity: "info"
+          });
+        });
+      }
+      if (agentData.risk_factors) {
+        agentData.risk_factors.slice(0, 1).forEach(risk => {
+          const shortRisk = risk.length > 70 ? risk.substring(0, 70) + "..." : risk;
+          events.push({
+            agent: agentName,
+            message: shortRisk,
+            color,
+            severity: "critical"
+          });
+        });
+      }
+      // Add completion event
+      events.push({
+        agent: agentName,
+        message: "Executive intelligence synthesis complete",
+        color,
+        severity: "success"
+      });
+    }
+  });
+  
+  // Add orchestrator consensus event
+  if (events.length > 0) {
+    events.push({
+      agent: "Orchestrator",
+      message: "Cross-agent intelligence consensus achieved",
+      color: "#D4AF37",
+      severity: "success"
+    });
+  }
+  
+  console.log("");
+  console.log("╔════════════════════════════════════════════════════════════╗");
+  console.log("║              EVENT GENERATION RESULTS                      ║");
+  console.log("╚════════════════════════════════════════════════════════════╝");
+  
+  if (events.length === 0) {
+    console.error("❌ NO ORCHESTRATION EVENTS GENERATED");
+    console.error("This means event extraction failed.");
+    console.error("Check agent data structures above for issues.");
+  } else {
+    console.log(`✅ Generated ${events.length} dynamic orchestration events:`);
+    events.forEach((event, idx) => {
+      console.log(`  ${idx + 1}. [${event.severity}] ${event.agent}: ${event.message.substring(0, 60)}...`);
+    });
+  }
+  
+  console.log("╚════════════════════════════════════════════════════════════╝");
+  
+  return events;
+};
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -69,26 +260,37 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Intelligence stream generator
+  // Intelligence stream generator - DYNAMIC from orchestration response
   useEffect(() => {
-    if (analyzing) {
-      const interval = setInterval(() => {
-        const randomMessage = reasoningMessages[Math.floor(Math.random() * reasoningMessages.length)];
-        setIntelligenceStream(prev => {
-          const newStream = [
-            ...prev,
-            {
-              ...randomMessage,
-              timestamp: new Date().toLocaleTimeString(),
-              id: Date.now() + Math.random()
-            }
-          ];
-          return newStream.slice(-12); // Keep last 12 messages
-        });
-      }, 1500);
-      return () => clearInterval(interval);
+    if (analyzing && orchestrationData) {
+      // Generate events from actual AI response
+      const dynamicEvents = generateOrchestrationEvents(orchestrationData);
+      
+      if (dynamicEvents.length > 0) {
+        // Stream events progressively with staggered timing
+        let eventIndex = 0;
+        const interval = setInterval(() => {
+          if (eventIndex < dynamicEvents.length) {
+            const event = dynamicEvents[eventIndex];
+            setIntelligenceStream(prev => {
+              const newStream = [
+                ...prev,
+                {
+                  ...event,
+                  timestamp: new Date().toLocaleTimeString(),
+                  id: Date.now() + Math.random()
+                }
+              ];
+              return newStream.slice(-12); // Keep last 12 messages
+            });
+            eventIndex++;
+          }
+        }, 800); // Staggered event timing
+        
+        return () => clearInterval(interval);
+      }
     }
-  }, [analyzing]);
+  }, [analyzing, orchestrationData]);
 
   // Auto-scroll intelligence stream
   useEffect(() => {
@@ -171,7 +373,49 @@ export default function App() {
       setTimeout(() => {
         setOrchestrationData(result);
         setOrchestrationStage(5); // Complete
-        console.log("Orchestration result:", result);
+        
+        // COMPREHENSIVE DEBUGGING - Trace complete data flow
+        console.log("╔════════════════════════════════════════════════════════════╗");
+        console.log("║          ORCHESTRATION RESULT - FULL DATA TRACE           ║");
+        console.log("╚════════════════════════════════════════════════════════════╝");
+        console.log("");
+        console.log("📦 FULL ORCHESTRATION RESPONSE:");
+        console.log(JSON.stringify(result, null, 2));
+        console.log("");
+        
+        const execAgent = result?.responses?.find(r => r.agent_name === 'ExecutiveAgent');
+        console.log("🤖 EXECUTIVE AGENT RESPONSE:");
+        console.log(JSON.stringify(execAgent, null, 2));
+        console.log("");
+        
+        if (execAgent?.data) {
+          console.log("📊 EXECUTIVE AGENT DATA STRUCTURE:");
+          console.log("  - strategic_insights:", execAgent.data.strategic_insights);
+          console.log("  - recommendations:", execAgent.data.recommendations);
+          console.log("  - risk_factors:", execAgent.data.risk_factors);
+          console.log("  - opportunities:", execAgent.data.opportunities);
+          console.log("");
+          
+          console.log("📈 ARRAY LENGTHS:");
+          console.log("  - Insights:", execAgent.data.strategic_insights?.length || 0);
+          console.log("  - Recommendations:", execAgent.data.recommendations?.length || 0);
+          console.log("  - Risks:", execAgent.data.risk_factors?.length || 0);
+          console.log("  - Opportunities:", execAgent.data.opportunities?.length || 0);
+          console.log("");
+          
+          console.log("✅ EXTRACTED CONTENT:");
+          console.log("INSIGHTS:", execAgent.data.strategic_insights);
+          console.log("RECOMMENDATIONS:", execAgent.data.recommendations);
+          console.log("RISKS:", execAgent.data.risk_factors);
+          console.log("OPPORTUNITIES:", execAgent.data.opportunities);
+        } else {
+          console.error("❌ NO DATA IN EXECUTIVE AGENT RESPONSE");
+        }
+        
+        console.log("");
+        console.log("╔════════════════════════════════════════════════════════════╗");
+        console.log("║                    END DATA TRACE                          ║");
+        console.log("╚════════════════════════════════════════════════════════════╝");
       }, 2200);
     } catch (err) {
       setError(err.message);
@@ -208,11 +452,47 @@ export default function App() {
     ? Math.round(riskAgent.data.risk_profile.risk_score * 10)
     : orchestrationData ? 87 : 82;
 
-  // Get executive insights with enhanced formatting
-  const executiveInsights = executiveAgent?.data?.insights || [];
+  // DYNAMIC AI INTELLIGENCE EXTRACTION
+  // Extract real watsonx.ai generated intelligence from ExecutiveAgent response
+  const executiveInsights = executiveAgent?.data?.strategic_insights || [];
   const executiveRecommendations = executiveAgent?.data?.recommendations || [];
-  const executiveRisks = executiveAgent?.data?.risks || [];
+  const executiveRisks = executiveAgent?.data?.risk_factors || [];
   const executiveOpportunities = executiveAgent?.data?.opportunities || [];
+  
+  // FRONTEND RENDERING DEBUG - Log what will be rendered
+  if (orchestrationData && executiveAgent) {
+    console.log("╔════════════════════════════════════════════════════════════╗");
+    console.log("║           FRONTEND RENDERING - EXTRACTED DATA              ║");
+    console.log("╚════════════════════════════════════════════════════════════╝");
+    console.log("🎨 WHAT FRONTEND WILL RENDER:");
+    console.log("  executiveInsights:", executiveInsights);
+    console.log("  executiveRecommendations:", executiveRecommendations);
+    console.log("  executiveRisks:", executiveRisks);
+    console.log("  executiveOpportunities:", executiveOpportunities);
+    console.log("");
+    console.log("📊 RENDERING ARRAY LENGTHS:");
+    console.log("  Insights to render:", executiveInsights.length);
+    console.log("  Recommendations to render:", executiveRecommendations.length);
+    console.log("  Risks to render:", executiveRisks.length);
+    console.log("  Opportunities to render:", executiveOpportunities.length);
+    console.log("╚════════════════════════════════════════════════════════════╝");
+  }
+  
+  // Extract executive summary from query for context
+  const executiveSummary = executiveAgent?.data?.query || query || "";
+  
+  // Generate dynamic Black Swan alert summary from first risk
+  const generateBlackSwanAlert = () => {
+    if (!executiveRisks || executiveRisks.length === 0) {
+      return "Critical operational risk exposure detected. Immediate executive intervention recommended.";
+    }
+    
+    // Use the first risk as the primary alert, or combine top risks
+    const primaryRisk = executiveRisks[0];
+    const secondaryContext = executiveRisks.length > 1 ? ` ${executiveRisks[1]}` : "";
+    
+    return `${primaryRisk}${secondaryContext} Immediate executive intervention and contingency activation recommended.`;
+  };
 
   return (
     <AnimatePresence>
@@ -594,16 +874,14 @@ export default function App() {
                         <div>
                           <p className="text-red-400 font-bold text-xl mb-2">Critical Black Swan Event Detected</p>
                           <p className="text-red-300/90 leading-relaxed">
-                            Critical semiconductor dependency exposure identified across APAC manufacturing corridors.
-                            Enterprise operational continuity may be impacted within 14–21 days if geopolitical instability escalates.
-                            Immediate executive intervention and contingency activation recommended.
+                            {generateBlackSwanAlert()}
                           </p>
                         </div>
                       </motion.div>
                     )}
 
                     {/* STRATEGIC INSIGHTS WITH ENHANCED ANIMATIONS */}
-                    {executiveInsights.length > 0 && (
+                    {executiveInsights && executiveInsights.length > 0 && (
                       <div className="mb-8 relative z-10">
                         <h3 className="text-[#D4AF37] font-bold text-xl mb-4 flex items-center gap-2">
                           <TrendingUp size={20} style={{ filter: 'drop-shadow(0 0 5px rgba(212, 175, 55, 0.5))' }} />
@@ -626,7 +904,7 @@ export default function App() {
                     )}
 
                     {/* STRATEGIC MITIGATION ACTIONS WITH GLOWING BULLETS */}
-                    {executiveRecommendations.length > 0 && (
+                    {executiveRecommendations && executiveRecommendations.length > 0 && (
                       <div className="mb-8 relative z-10">
                         <h3 className="text-[#D4AF37] font-bold text-xl mb-4 flex items-center gap-2">
                           <Zap size={20} style={{ filter: 'drop-shadow(0 0 5px rgba(212, 175, 55, 0.5))' }} />
@@ -653,7 +931,7 @@ export default function App() {
                     )}
 
                     {/* OPERATIONAL RISKS WITH ENHANCED STYLING */}
-                    {executiveRisks.length > 0 && (
+                    {executiveRisks && executiveRisks.length > 0 && (
                       <div className="mb-8 relative z-10">
                         <h3 className="text-red-400 font-bold text-xl mb-4 flex items-center gap-2">
                           <ShieldAlert size={20} />
@@ -677,7 +955,7 @@ export default function App() {
                     )}
 
                     {/* STRATEGIC OPPORTUNITIES */}
-                    {executiveOpportunities.length > 0 && (
+                    {executiveOpportunities && executiveOpportunities.length > 0 && (
                       <div className="relative z-10">
                         <h3 className="text-green-400 font-bold text-xl mb-4 flex items-center gap-2">
                           <TrendingUp size={20} />
@@ -701,6 +979,26 @@ export default function App() {
                           ))}
                         </div>
                       </div>
+                    )}
+                    
+                    {/* EMPTY STATE - Show when no AI content available */}
+                    {(!executiveInsights || executiveInsights.length === 0) &&
+                     (!executiveRecommendations || executiveRecommendations.length === 0) &&
+                     (!executiveRisks || executiveRisks.length === 0) &&
+                     (!executiveOpportunities || executiveOpportunities.length === 0) && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-center py-12 relative z-10"
+                      >
+                        <BrainCircuit className="mx-auto mb-4 text-[#D4AF37]/30" size={48} />
+                        <p className="text-[#8E8E8E] text-lg">
+                          AI intelligence generation in progress...
+                        </p>
+                        <p className="text-[#6E6E6E] text-sm mt-2">
+                          Executive briefing will appear here once analysis is complete
+                        </p>
+                      </motion.div>
                     )}
 
                     {/* CONFIDENCE INDICATOR WITH GLOW */}
@@ -892,45 +1190,58 @@ export default function App() {
                     className="space-y-3 font-mono text-sm h-[350px] overflow-y-auto relative z-10 scrollbar-thin scrollbar-thumb-[#2A2A2A] scrollbar-track-transparent"
                   >
                     {intelligenceStream.length > 0 ? (
-                      intelligenceStream.map((item, idx) => (
-                        <motion.div
-                          key={item.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3 }}
-                          className="flex items-start gap-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl p-4 hover:border-[#C8A75D]/30 transition-all"
-                        >
-                          <span className="text-[#5A5A5A] text-xs mt-1 flex-shrink-0">{item.timestamp}</span>
-                          <span style={{ color: item.color }}>→</span>
-                          <div className="flex-1">
-                            <span className="font-semibold" style={{ color: item.color }}>{item.agent}</span>
-                            <p className="text-[#D0D0D0] leading-relaxed mt-1">{item.message}</p>
-                          </div>
-                        </motion.div>
-                      ))
+                      intelligenceStream.map((item, idx) => {
+                        // Severity-based styling
+                        const severityStyles = {
+                          critical: {
+                            border: 'border-red-500/30',
+                            bg: 'bg-red-500/5',
+                            glow: 'shadow-[0_0_15px_rgba(239,68,68,0.1)]'
+                          },
+                          warning: {
+                            border: 'border-orange-500/30',
+                            bg: 'bg-orange-500/5',
+                            glow: 'shadow-[0_0_15px_rgba(249,115,22,0.1)]'
+                          },
+                          success: {
+                            border: 'border-green-500/30',
+                            bg: 'bg-green-500/5',
+                            glow: 'shadow-[0_0_15px_rgba(74,222,128,0.1)]'
+                          },
+                          info: {
+                            border: 'border-[#2A2A2A]',
+                            bg: 'bg-[#0A0A0A]',
+                            glow: ''
+                          }
+                        };
+                        
+                        const style = severityStyles[item.severity] || severityStyles.info;
+                        
+                        return (
+                          <motion.div
+                            key={item.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className={`flex items-start gap-3 ${style.bg} border ${style.border} rounded-xl p-4 hover:border-[#C8A75D]/30 transition-all ${style.glow}`}
+                          >
+                            <span className="text-[#5A5A5A] text-xs mt-1 flex-shrink-0">{item.timestamp}</span>
+                            <span style={{ color: item.color }}>→</span>
+                            <div className="flex-1">
+                              <span className="font-semibold" style={{ color: item.color }}>{item.agent}</span>
+                              <p className="text-[#D0D0D0] leading-relaxed mt-1">{item.message}</p>
+                            </div>
+                          </motion.div>
+                        );
+                      })
                     ) : (
-                      <>
-                        <div className="flex items-start gap-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl p-4">
-                          <span className="text-[#5A5A5A] text-xs">08:42</span>
-                          <span className="text-[#D4AF37]">→</span>
-                          <p className="text-[#D0D0D0]">DataAgent detected export disruption anomalies in APAC region</p>
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center">
+                          <Radio className="mx-auto mb-4 text-[#D4AF37]/30" size={48} />
+                          <p className="text-[#8E8E8E] text-lg">Orchestration telemetry stream</p>
+                          <p className="text-[#6E6E6E] text-sm mt-2">Live agent events will appear here during analysis</p>
                         </div>
-                        <div className="flex items-start gap-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl p-4">
-                          <span className="text-[#5A5A5A] text-xs">08:43</span>
-                          <span className="text-red-400">→</span>
-                          <p className="text-[#D0D0D0]">RiskAgent escalated operational severity to CRITICAL level</p>
-                        </div>
-                        <div className="flex items-start gap-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl p-4">
-                          <span className="text-[#5A5A5A] text-xs">08:44</span>
-                          <span className="text-blue-400">→</span>
-                          <p className="text-[#D0D0D0]">StrategyAgent initiated mitigation modeling and contingency planning</p>
-                        </div>
-                        <div className="flex items-start gap-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl p-4">
-                          <span className="text-[#5A5A5A] text-xs">08:45</span>
-                          <span className="text-green-400">→</span>
-                          <p className="text-[#D0D0D0]">ExecutiveAgent generated strategic contingency briefing</p>
-                        </div>
-                      </>
+                      </div>
                     )}
                   </div>
                 </motion.div>
