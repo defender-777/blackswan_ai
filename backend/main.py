@@ -29,11 +29,15 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configure CORS
+# Configure CORS with production-ready settings
 settings = get_settings()
+cors_origins = settings.get_cors_origins()
+
+logger.info(f"Configuring CORS with origins: {cors_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -57,11 +61,15 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
+    
+    # Production-ready uvicorn configuration
     uvicorn.run(
         "backend.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=settings.DEBUG
+        host=settings.HOST,
+        port=settings.PORT,
+        reload=settings.DEBUG,
+        log_level="info" if not settings.DEBUG else "debug",
+        access_log=True
     )
 
 # Made with Bob
