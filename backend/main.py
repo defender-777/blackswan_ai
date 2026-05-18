@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 
-from backend.config import get_settings
-from backend.api.routers import agents, orchestration, health
+from config import get_settings
+from api.routers import agents, orchestration, health
 
 # Configure logging
 logging.basicConfig(
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     
     # Production-ready uvicorn configuration
     uvicorn.run(
-        "backend.main:app",
+        "main:app",
         host=settings.HOST,
         port=settings.PORT,
         reload=settings.DEBUG,
