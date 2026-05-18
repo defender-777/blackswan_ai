@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 from datetime import datetime
 import time
-from backend.api.schemas import HealthCheckResponse
-from backend.api.dependencies import get_orchestrator, get_settings_dependency
-from backend.core.orchestrator import AgentOrchestrator
-from backend.config import Settings
+from api.schemas import HealthCheckResponse
+from api.dependencies import get_orchestrator, get_settings_dependency
+from core.orchestrator import AgentOrchestrator
+from config import Settings
 
 router = APIRouter(prefix="/health", tags=["health"])
 

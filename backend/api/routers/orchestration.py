@@ -1,8 +1,8 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
-from backend.api.schemas import OrchestrationRequest, OrchestrationResponse
-from backend.api.dependencies import get_orchestrator, create_agent_context
-from backend.core.orchestrator import AgentOrchestrator
+from api.schemas import OrchestrationRequest, OrchestrationResponse
+from api.dependencies import get_orchestrator, create_agent_context
+from core.orchestrator import AgentOrchestrator
 
 router = APIRouter(prefix="/orchestration", tags=["orchestration"])
 

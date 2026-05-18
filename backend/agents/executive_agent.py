@@ -1,8 +1,8 @@
 from typing import Dict, Any
 from datetime import datetime
 import time
-from backend.core.base_agent import BaseAgent, AgentContext, AgentResponse
-from backend.services.watsonx_client import get_watsonx_client
+from core.base_agent import BaseAgent, AgentContext, AgentResponse
+from services.watsonx_client import get_watsonx_client
 
 class ExecutiveAgent(BaseAgent):
     """Executive-level strategic decision making agent"""

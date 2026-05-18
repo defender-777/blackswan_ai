@@ -14,7 +14,7 @@ if __name__ == "__main__":
     logger.info("Health Check: http://127.0.0.1:8007/api/v1/health")
     
     uvicorn.run(
-        "backend.main:app",
+        "main:app",
         host="127.0.0.1",
         port=8007,
         reload=True,

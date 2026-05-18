@@ -1,6 +1,6 @@
 from typing import Dict, Any, List
 import time
-from backend.core.base_agent import BaseAgent, AgentContext, AgentResponse
+from core.base_agent import BaseAgent, AgentContext, AgentResponse
 
 class StrategyAgent(BaseAgent):
     """Strategic planning and analysis agent"""

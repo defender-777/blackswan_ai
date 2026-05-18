@@ -1,13 +1,13 @@
 from functools import lru_cache
 import uuid
 from typing import Optional
-from backend.config import get_settings, Settings
-from backend.core.orchestrator import AgentOrchestrator
-from backend.core.base_agent import AgentContext
-from backend.agents.executive_agent import ExecutiveAgent
-from backend.agents.strategy_agent import StrategyAgent
-from backend.agents.risk_agent import RiskAgent
-from backend.agents.data_agent import DataAgent
+from config import get_settings, Settings
+from core.orchestrator import AgentOrchestrator
+from core.base_agent import AgentContext
+from agents.executive_agent import ExecutiveAgent
+from agents.strategy_agent import StrategyAgent
+from agents.risk_agent import RiskAgent
+from agents.data_agent import DataAgent
 
 @lru_cache()
 def get_orchestrator() -> AgentOrchestrator:

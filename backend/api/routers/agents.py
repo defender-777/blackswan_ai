@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
-from backend.api.schemas import (
+from api.schemas import (
     ExecutiveQueryRequest,
     StrategyQueryRequest,
     RiskAssessmentRequest,
     DataQueryRequest,
     AgentResponseSchema
 )
-from backend.api.dependencies import get_orchestrator, create_agent_context
-from backend.core.orchestrator import AgentOrchestrator
+from api.dependencies import get_orchestrator, create_agent_context
+from core.orchestrator import AgentOrchestrator
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
