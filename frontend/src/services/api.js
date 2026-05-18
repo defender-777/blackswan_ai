@@ -1,6 +1,6 @@
 /**
  * BlackSwan AI - API Service Layer
- * Handles all backend communication
+ * Handles all backend communication after deployment
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8007';
