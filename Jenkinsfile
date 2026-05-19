@@ -15,18 +15,19 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('sonarqube') {
-                    sh '''
-                    sonar-scanner \
-                    -Dsonar.projectKey=blackswan-ai \
-                    -Dsonar.sources=. \
-                    -Dsonar.host.url=http://host.docker.internal:9000 \
-                    -Dsonar.login=$SONAR_TOKEN
-                    '''
-                }
-            }
+    steps {
+        withSonarQubeEnv('sonarqube') {
+            sh '''
+            export PATH="/opt/homebrew/bin:$PATH"
+            sonar-scanner \
+            -Dsonar.projectKey=blackswan-ai \
+            -Dsonar.sources=. \
+            -Dsonar.host.url=http://host.docker.internal:9000 \
+            -Dsonar.login=$SONAR_TOKEN
+            '''
         }
+    }
+}
 
         stage('Trivy Vulnerability Scan') {
             steps {
