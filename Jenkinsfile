@@ -22,7 +22,7 @@ pipeline {
             sonar-scanner \
             -Dsonar.projectKey=blackswan-ai \
             -Dsonar.sources=. \
-            -Dsonar.host.url=http://host.docker.internal:9000 \
+            -Dsonar.host.url=http://localhost:9000 \
             -Dsonar.login=$SONAR_TOKEN
             '''
         }
