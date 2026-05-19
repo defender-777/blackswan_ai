@@ -38,25 +38,22 @@ pipeline {
     }
 }
 
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t $DOCKER_IMAGE:latest .'
-            }
-        }
+      stage('Build Docker Image') {
+    steps {
+        sh '''
+        export PATH=/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin
+        /usr/local/bin/docker build -t 7204392712/blackswan-ai:latest .
+        '''
+    }
+}
 
-        stage('Push Docker Image') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-
-                    sh 'docker push $DOCKER_IMAGE:latest'
-                }
-            }
-        }
+stage('Push Docker Image') {
+    steps {
+        sh '''
+        export PATH=/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin
+        /usr/local/bin/docker push 7204392712/blackswan-ai:latest
+        '''
+    }
+}
     }
 }
