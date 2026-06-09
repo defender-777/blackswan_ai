@@ -30,11 +30,12 @@ pipeline {
 }
 
         stage('Trivy Vulnerability Scan') {
-        steps {
-            sh '''
-            export PATH="/opt/homebrew/bin:$PATH"
-            trivy fs .
-            '''
+    steps {
+        sh '''
+        export PATH=/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin
+        trivy fs .
+        '''
+    
     }
 }
 
