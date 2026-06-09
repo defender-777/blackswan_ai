@@ -53,7 +53,7 @@ const generateOrchestrationEvents = (orchestrationData) => {
   console.log("");
   
   if (!orchestrationData) {
-    console.error("❌ NO ORCHESTRATION DATA PROVIDED");
+    console.error("❌ ORCHESTRATION DATA NOT PROVIDED");
     return [];
   }
   
