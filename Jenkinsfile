@@ -56,5 +56,14 @@ stage('Push Docker Image') {
         '''
     }
 }
+        stage('Deployment Verification') {
+    steps {
+        sh '''
+        curl -f https://blackswan-ai-backend.onrender.com
+        curl -f https://blackswan-ai.vercel.app/
+        echo "Deployment Verification Passed!"
+        '''
+    }
+}
     }
 }
